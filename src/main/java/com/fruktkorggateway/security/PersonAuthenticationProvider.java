@@ -1,4 +1,4 @@
-package com.fruktkorg.security;
+package com.fruktkorggateway.security;
 
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.core.Authentication;

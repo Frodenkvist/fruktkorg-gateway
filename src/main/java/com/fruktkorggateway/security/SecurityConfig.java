@@ -1,4 +1,4 @@
-package com.fruktkorg.security;
+package com.fruktkorggateway.security;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;

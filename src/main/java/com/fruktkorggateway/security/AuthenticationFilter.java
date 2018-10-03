@@ -1,8 +1,8 @@
-package com.fruktkorg.security;
+package com.fruktkorggateway.security;
 
-import com.fruktkorg.common.exception.PersonMissingException;
-import com.fruktkorg.common.model.Person;
-import com.fruktkorg.service.PersonService;
+import com.fruktkorggateway.common.exception.PersonMissingException;
+import com.fruktkorggateway.common.model.Person;
+import com.fruktkorggateway.service.PersonService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
