@@ -1,10 +1,8 @@
 package com.fruktkorggateway.security;
 
+import com.common.util.RestCaller;
+import com.common.util.RestResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,8 +21,7 @@ import java.util.List;
 @Component
 public class AuthenticationFilter extends GenericFilterBean {
     private static final String PERSON_NUMBER_HEADER = "X-PERSONR";
-    private static final OkHttpClient client = new OkHttpClient();
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final RestCaller restCaller = new RestCaller();
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
@@ -37,26 +34,21 @@ public class AuthenticationFilter extends GenericFilterBean {
             return;
         }
 
-        Response authenticationResponse = client.newCall(new Request.Builder()
-                .get()
-                .url("http://localhost:12347/v1/authentication/permission/" + personnummer)
-                .build()
-        ).execute();
+        RestResponse<List<String>> restResponse = restCaller.getCall("http://localhost:12347/v1/authentication/permission/" + personnummer,
+                new TypeReference<List<String>>() {});
 
-        if(authenticationResponse.code() == HttpStatus.NOT_FOUND.value()) {
+        if(restResponse.getStatusCode() == HttpStatus.NOT_FOUND) {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
             return;
         }
 
-        if(authenticationResponse.body() == null) {
+        if(restResponse.getResponse() == null) {
             response.setStatus(HttpStatus.UNAUTHORIZED.value());
             return;
         }
 
-        if(authenticationResponse.code() == HttpStatus.OK.value()) {
-            List<String> permissions = objectMapper.readValue(authenticationResponse.body().string(), new TypeReference<List<String>>() {});
-
-            Authentication auth = new AuthenticationToken(personnummer, permissions);
+        if(restResponse.isOk()) {
+            Authentication auth = new AuthenticationToken(personnummer, restResponse.getResponse());
             SecurityContextHolder.getContext().setAuthentication(auth);
         }
 
