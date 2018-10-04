@@ -1,43 +1,65 @@
 package com.fruktkorggateway.security;
 
-import com.fruktkorggateway.common.exception.PersonMissingException;
-import com.fruktkorggateway.common.model.Person;
-import com.fruktkorggateway.service.PersonService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.filter.GenericFilterBean;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 
 @Component
-public class AuthenticationFilter extends OncePerRequestFilter {
+public class AuthenticationFilter extends GenericFilterBean {
     private static final String PERSON_NUMBER_HEADER = "X-PERSONR";
-
-    @Autowired
-    private PersonService personService;
+    private static final OkHttpClient client = new OkHttpClient();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        String personNumber = request.getHeader(PERSON_NUMBER_HEADER);
-        if (personNumber == null) {
-            throw new SecurityException("X-PERSONR Was missing in Header");
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
+        HttpServletRequest request = (HttpServletRequest) servletRequest;
+        HttpServletResponse response = (HttpServletResponse) servletResponse;
+
+        final String personnummer = request.getHeader(PERSON_NUMBER_HEADER);
+        if(personnummer == null) {
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            return;
         }
 
-        Person loggedInUser;
-        try {
-            loggedInUser = personService.getPerson(personNumber);
-        } catch (PersonMissingException e) {
-            throw new SecurityException("Person was not found");
+        Response authenticationResponse = client.newCall(new Request.Builder()
+                .get()
+                .url("http://localhost:12347/v1/authentication/permission/" + personnummer)
+                .build()
+        ).execute();
+
+        if(authenticationResponse.code() == HttpStatus.NOT_FOUND.value()) {
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            return;
         }
 
-        Authentication auth = new AuthenticationToken(loggedInUser);
-        SecurityContextHolder.getContext().setAuthentication(auth);
-        filterChain.doFilter(request, response);
+        if(authenticationResponse.body() == null) {
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            return;
+        }
+
+        if(authenticationResponse.code() == HttpStatus.OK.value()) {
+            List<String> permissions = objectMapper.readValue(authenticationResponse.body().string(), new TypeReference<List<String>>() {});
+
+            Authentication auth = new AuthenticationToken(personnummer, permissions);
+            SecurityContextHolder.getContext().setAuthentication(auth);
+        }
+
+        filterChain.doFilter(servletRequest, servletResponse);
     }
 }

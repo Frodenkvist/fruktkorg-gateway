@@ -11,7 +11,7 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 
 @Configuration
 @EnableWebSecurity
-@EnableGlobalMethodSecurity(securedEnabled = true)
+@EnableGlobalMethodSecurity(securedEnabled = true, prePostEnabled = true)
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     private final PersonAuthenticationProvider personAuthenticationProvider;
@@ -25,10 +25,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-
         http
             .authorizeRequests()
-            .antMatchers("/")
+            .antMatchers("/**")
             .authenticated()
             .and()
             .addFilterBefore(authenticationFilter, BasicAuthenticationFilter.class);

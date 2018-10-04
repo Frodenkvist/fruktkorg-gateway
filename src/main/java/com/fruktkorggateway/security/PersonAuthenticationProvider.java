@@ -14,6 +14,6 @@ public class PersonAuthenticationProvider implements AuthenticationProvider {
 
     @Override
     public boolean supports(Class<?> aClass) {
-        return false;
+        return AuthenticationToken.class.isAssignableFrom(aClass);
     }
 }
